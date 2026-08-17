@@ -13,6 +13,14 @@ type Volunteer = {
   nextAssignment: string;
 };
 
+type VolunteerFormState = {
+  name: string;
+  team: Exclude<Team, "All">;
+  contact: string;
+  availability: Volunteer["availability"];
+  nextAssignment: string;
+};
+
 type ScheduleSlot = {
   title: string;
   time: string;
@@ -30,7 +38,7 @@ type StewardshipRecord = {
   status: "Cleared" | "Pending";
 };
 
-const volunteers: Volunteer[] = [
+const initialVolunteers: Volunteer[] = [
   { id: 1, name: "Alicia James", team: "Ushers", contact: "(555) 101-2041", availability: "Available", nextAssignment: "Main Entrance" },
   { id: 2, name: "Marcus Lee", team: "Worship Team", contact: "(555) 010-4104", availability: "Available", nextAssignment: "Lead Guitar" },
   { id: 3, name: "Sofia Reed", team: "Tech Crew", contact: "(555) 822-9915", availability: "On Call", nextAssignment: "Live Stream" },
@@ -41,7 +49,7 @@ const volunteers: Volunteer[] = [
   { id: 8, name: "Elijah Stone", team: "Sunday School", contact: "(555) 913-4401", availability: "Available", nextAssignment: "Middle School" },
 ];
 
-const schedule: ScheduleSlot[] = [
+const initialSchedule: ScheduleSlot[] = [
   { title: "Sunday Morning Worship", time: "8:30 AM", team: "Ushers", assigned: ["Alicia James", "Grace Solomon"], openSpots: 2, status: "Ready" },
   { title: "Worship Team Rehearsal", time: "9:15 AM", team: "Worship Team", assigned: ["Marcus Lee", "Isaac Brooks"], openSpots: 1, status: "Needs Coverage" },
   { title: "Streaming & Audio", time: "10:00 AM", team: "Tech Crew", assigned: ["Sofia Reed", "Maya Patel"], openSpots: 1, status: "Ready" },
@@ -57,13 +65,27 @@ const stewardship: StewardshipRecord[] = [
 
 const teamOptions: Team[] = ["All", "Ushers", "Worship Team", "Tech Crew", "Sunday School"];
 
+const emptyVolunteerForm: VolunteerFormState = {
+  name: "",
+  team: "Ushers",
+  contact: "",
+  availability: "Available",
+  nextAssignment: "",
+};
+
 export default function Home() {
   const [selectedTeam, setSelectedTeam] = useState<Team>("All");
+  const [volunteers, setVolunteers] = useState<Volunteer[]>(initialVolunteers);
+  const [schedule, setSchedule] = useState<ScheduleSlot[]>(initialSchedule);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingOriginalName, setEditingOriginalName] = useState<string>("");
+  const [formState, setFormState] = useState<VolunteerFormState>(emptyVolunteerForm);
 
   const filteredVolunteers = useMemo(() => {
     if (selectedTeam === "All") return volunteers;
     return volunteers.filter((person) => person.team === selectedTeam);
-  }, [selectedTeam]);
+  }, [selectedTeam, volunteers]);
 
   const totalAssigned = schedule.reduce((sum, slot) => sum + slot.assigned.length, 0);
   const totalOpenSpots = schedule.reduce((sum, slot) => sum + slot.openSpots, 0);
@@ -75,6 +97,97 @@ export default function Home() {
     { label: "Open slots", value: `${totalOpenSpots}`, track: "bg-amber-500/20", fill: "bg-amber-400" },
     { label: "Ready rosters", value: `${readyCount}/4`, track: "bg-violet-500/20", fill: "bg-violet-400" },
   ];
+
+  const handleChange = (field: keyof VolunteerFormState, value: string) => {
+    setFormState((current) => ({ ...current, [field]: value }));
+  };
+
+  const openAddForm = () => {
+    setEditingId(null);
+    setEditingOriginalName("");
+    setFormState(emptyVolunteerForm);
+    setShowForm(true);
+  };
+
+  const openEditForm = (person: Volunteer) => {
+    setEditingId(person.id);
+    setEditingOriginalName(person.name);
+    setFormState({
+      name: person.name,
+      team: person.team,
+      contact: person.contact,
+      availability: person.availability,
+      nextAssignment: person.nextAssignment,
+    });
+    setShowForm(true);
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setEditingOriginalName("");
+    setFormState(emptyVolunteerForm);
+  };
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const trimmedName = formState.name.trim();
+    if (!trimmedName) {
+      return;
+    }
+
+    if (editingId !== null) {
+      setVolunteers((current) =>
+        current.map((person) =>
+          person.id === editingId
+            ? {
+                ...person,
+                name: trimmedName,
+                team: formState.team,
+                contact: formState.contact,
+                availability: formState.availability,
+                nextAssignment: formState.nextAssignment,
+              }
+            : person,
+        ),
+      );
+
+      if (editingOriginalName && editingOriginalName !== trimmedName) {
+        setSchedule((current) =>
+          current.map((slot) => ({
+            ...slot,
+            assigned: slot.assigned.map((assignedName) =>
+              assignedName === editingOriginalName ? trimmedName : assignedName,
+            ),
+          })),
+        );
+      }
+    } else {
+      const newVolunteer: Volunteer = {
+        id: Date.now(),
+        name: trimmedName,
+        team: formState.team,
+        contact: formState.contact,
+        availability: formState.availability,
+        nextAssignment: formState.nextAssignment,
+      };
+
+      setVolunteers((current) => [...current, newVolunteer]);
+    }
+
+    closeForm();
+  };
+
+  const handleDelete = (person: Volunteer) => {
+    setVolunteers((current) => current.filter((entry) => entry.id !== person.id));
+    setSchedule((current) =>
+      current.map((slot) => ({
+        ...slot,
+        assigned: slot.assigned.filter((assignedName) => assignedName !== person.name),
+      })),
+    );
+  };
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
@@ -89,11 +202,103 @@ export default function Home() {
             <div className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
               4 services this week
             </div>
-            <button className="rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300">
-              + Add assignment
+            <button
+              onClick={openAddForm}
+              className="rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+            >
+              + Add volunteer
             </button>
           </div>
         </header>
+
+        {showForm && (
+          <section className="mb-8 rounded-2xl border border-emerald-500/30 bg-slate-900 p-5 shadow-xl shadow-slate-950/40">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Volunteer record</p>
+                <h2 className="mt-2 text-2xl font-semibold text-white">
+                  {editingId !== null ? "Edit volunteer" : "Add volunteer"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={closeForm}
+                className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-700"
+              >
+                Cancel
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
+              <label className="block text-sm text-slate-300">
+                Name
+                <input
+                  value={formState.name}
+                  onChange={(event) => handleChange("name", event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none ring-0 placeholder:text-slate-500 focus:border-emerald-400"
+                  placeholder="Full name"
+                />
+              </label>
+
+              <label className="block text-sm text-slate-300">
+                Team
+                <select
+                  value={formState.team}
+                  onChange={(event) => handleChange("team", event.target.value as Exclude<Team, "All">)}
+                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-emerald-400"
+                >
+                  {teamOptions.filter((team) => team !== "All").map((team) => (
+                    <option key={team} value={team}>
+                      {team}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block text-sm text-slate-300">
+                Contact
+                <input
+                  value={formState.contact}
+                  onChange={(event) => handleChange("contact", event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
+                  placeholder="(555) 000-0000"
+                />
+              </label>
+
+              <label className="block text-sm text-slate-300">
+                Availability
+                <select
+                  value={formState.availability}
+                  onChange={(event) => handleChange("availability", event.target.value as Volunteer["availability"])}
+                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-emerald-400"
+                >
+                  <option value="Available">Available</option>
+                  <option value="Backup">Backup</option>
+                  <option value="On Call">On Call</option>
+                </select>
+              </label>
+
+              <label className="block text-sm text-slate-300 md:col-span-2">
+                Next assignment
+                <input
+                  value={formState.nextAssignment}
+                  onChange={(event) => handleChange("nextAssignment", event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
+                  placeholder="Welcome desk, vocals, livestream, etc."
+                />
+              </label>
+
+              <div className="md:col-span-2 flex justify-end">
+                <button
+                  type="submit"
+                  className="rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+                >
+                  {editingId !== null ? "Save changes" : "Add volunteer"}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
 
         <section className="mb-8 grid gap-4 md:grid-cols-4">
           {stats.map((item) => (
@@ -130,32 +335,55 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
-            {filteredVolunteers.map((person) => (
-              <article key={person.id} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{person.name}</h3>
-                    <p className="text-sm text-emerald-300">{person.team}</p>
+          {filteredVolunteers.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/40 p-6 text-sm text-slate-400">
+              No volunteers match this team selection yet.
+            </div>
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+              {filteredVolunteers.map((person) => (
+                <article key={person.id} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{person.name}</h3>
+                      <p className="text-sm text-emerald-300">{person.team}</p>
+                    </div>
+                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${
+                      person.availability === "Available"
+                        ? "bg-emerald-500/15 text-emerald-200"
+                        : person.availability === "Backup"
+                          ? "bg-amber-500/15 text-amber-200"
+                          : "bg-sky-500/15 text-sky-200"
+                    }`}>
+                      {person.availability}
+                    </span>
                   </div>
-                  <span className={`rounded-full px-2 py-1 text-xs font-medium ${
-                    person.availability === "Available"
-                      ? "bg-emerald-500/15 text-emerald-200"
-                      : person.availability === "Backup"
-                        ? "bg-amber-500/15 text-amber-200"
-                        : "bg-sky-500/15 text-sky-200"
-                  }`}>
-                    {person.availability}
-                  </span>
-                </div>
 
-                <ul className="space-y-2 text-sm text-slate-300">
-                  <li>Contact: {person.contact}</li>
-                  <li>Next: {person.nextAssignment}</li>
-                </ul>
-              </article>
-            ))}
-          </div>
+                  <ul className="space-y-2 text-sm text-slate-300">
+                    <li>Contact: {person.contact}</li>
+                    <li>Next: {person.nextAssignment}</li>
+                  </ul>
+
+                  <div className="mt-4 flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openEditForm(person)}
+                      className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(person)}
+                      className="flex-1 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-200 hover:bg-rose-500/20"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
 
         <section className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
