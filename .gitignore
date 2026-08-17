@@ -39,3 +39,26 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# VS Code local settings
+.vscode-settings
+.vscode/
+*.jsonc
+
+# Local database files
+*.db
+*.db-shm
+*.db-wal
+
+# Local logs and temp files
+*.log
+*.jsonl
+.qid
+.qts
+
+# Local config files
+config.json
+extensions.json
+notifications.json
+startPage.json
+models.json
