@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 type Role = "system-admin" | "user-admin";
-type Team = "All" | "Ushers" | "Worship Team" | "Tech Crew" | "Sunday School";
+type Team = "All" | "Ushers" | "Worship Team" | "Tech Crew" | "Sunday School" | "Preacher";
+type Availability = "Available" | "Backup" | "On Call";
 
 type AppUser = {
   id: number;
@@ -12,6 +13,10 @@ type AppUser = {
   password: string;
   role: Role;
   church: string;
+  team?: Exclude<Team, "All">;
+  ministryRole?: string;
+  availability?: Availability;
+  nextAssignment?: string;
 };
 
 type Volunteer = {
@@ -19,7 +24,7 @@ type Volunteer = {
   name: string;
   team: Exclude<Team, "All">;
   contact: string;
-  availability: "Available" | "Backup" | "On Call";
+  availability: Availability;
   nextAssignment: string;
 };
 
@@ -51,23 +56,81 @@ type StewardshipRecord = {
 const STORAGE_USERS = "church_users";
 const STORAGE_SESSION = "church_session";
 
-const initialVolunteers: Volunteer[] = [
-  { id: 1, name: "Alicia James", team: "Ushers", contact: "(555) 101-2041", availability: "Available", nextAssignment: "Main Entrance" },
-  { id: 2, name: "Marcus Lee", team: "Worship Team", contact: "(555) 010-4104", availability: "Available", nextAssignment: "Lead Guitar" },
-  { id: 3, name: "Sofia Reed", team: "Tech Crew", contact: "(555) 822-9915", availability: "On Call", nextAssignment: "Live Stream" },
-  { id: 4, name: "Daniel Hayes", team: "Sunday School", contact: "(555) 204-6908", availability: "Available", nextAssignment: "Preschool Room" },
-  { id: 5, name: "Grace Solomon", team: "Ushers", contact: "(555) 403-2112", availability: "Backup", nextAssignment: "Welcome Desk" },
-  { id: 6, name: "Isaac Brooks", team: "Worship Team", contact: "(555) 304-1139", availability: "Available", nextAssignment: "Vocals" },
-  { id: 7, name: "Maya Patel", team: "Tech Crew", contact: "(555) 120-8802", availability: "Available", nextAssignment: "Lighting Console" },
-  { id: 8, name: "Elijah Stone", team: "Sunday School", contact: "(555) 913-4401", availability: "Available", nextAssignment: "Middle School" },
-];
+const getStoredUsers = (): AppUser[] => {
+  if (typeof window === "undefined") return [];
 
-const initialSchedule: ScheduleSlot[] = [
-  { title: "Sunday Morning Worship", time: "8:30 AM", team: "Ushers", assigned: ["Alicia James", "Grace Solomon"], openSpots: 2, status: "Ready" },
-  { title: "Worship Team Rehearsal", time: "9:15 AM", team: "Worship Team", assigned: ["Marcus Lee", "Isaac Brooks"], openSpots: 1, status: "Needs Coverage" },
-  { title: "Streaming & Audio", time: "10:00 AM", team: "Tech Crew", assigned: ["Sofia Reed", "Maya Patel"], openSpots: 1, status: "Ready" },
-  { title: "Children's Classes", time: "10:30 AM", team: "Sunday School", assigned: ["Daniel Hayes", "Elijah Stone"], openSpots: 3, status: "Ready" },
-];
+  const stored = window.localStorage.getItem(STORAGE_USERS);
+  if (!stored) return [];
+
+  try {
+    const parsed = JSON.parse(stored) as AppUser[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const mapUserToVolunteer = (user: AppUser): Volunteer => ({
+  id: user.id,
+  name: user.fullName,
+  team: user.team ?? "Ushers",
+  contact: user.email,
+  availability: user.availability ?? "Available",
+  nextAssignment: user.nextAssignment ?? "Open assignment",
+});
+
+const buildScheduleFromUsers = (users: AppUser[]): ScheduleSlot[] => {
+  const getAssigned = (team: Exclude<Team, "All">) =>
+    users.filter((user) => user.team === team).map((user) => user.fullName);
+
+  const schedule: ScheduleSlot[] = [
+    {
+      title: "Sunday Morning Worship",
+      time: "8:30 AM",
+      team: "Ushers",
+      assigned: getAssigned("Ushers"),
+      openSpots: 2,
+      status: "Ready",
+    },
+    {
+      title: "Worship Team Rehearsal",
+      time: "9:15 AM",
+      team: "Worship Team",
+      assigned: getAssigned("Worship Team"),
+      openSpots: 1,
+      status: getAssigned("Worship Team").length >= 2 ? "Ready" : "Needs Coverage",
+    },
+    {
+      title: "Streaming & Audio",
+      time: "10:00 AM",
+      team: "Tech Crew",
+      assigned: getAssigned("Tech Crew"),
+      openSpots: 1,
+      status: "Ready",
+    },
+    {
+      title: "Children's Classes",
+      time: "10:30 AM",
+      team: "Sunday School",
+      assigned: getAssigned("Sunday School"),
+      openSpots: 3,
+      status: "Ready",
+    },
+    {
+      title: "Preaching Team",
+      time: "10:45 AM",
+      team: "Preacher",
+      assigned: getAssigned("Preacher"),
+      openSpots: 1,
+      status: getAssigned("Preacher").length >= 1 ? "Ready" : "Needs Coverage",
+    },
+  ];
+
+  return schedule.map((slot) => ({
+    ...slot,
+    openSpots: Math.max(0, 3 - slot.assigned.length),
+  }));
+};
 
 const stewardship: StewardshipRecord[] = [
   { date: "2026-08-09", category: "Tithes & Offerings", amount: "$4,280.00", note: "Sunday service donation", status: "Cleared" },
@@ -76,7 +139,7 @@ const stewardship: StewardshipRecord[] = [
   { date: "2026-08-12", category: "Facility Maintenance", amount: "$780.00", note: "Sound booth repairs", status: "Pending" },
 ];
 
-const teamOptions: Team[] = ["All", "Ushers", "Worship Team", "Tech Crew", "Sunday School"];
+const teamOptions: Team[] = ["All", "Ushers", "Worship Team", "Tech Crew", "Sunday School", "Preacher"];
 
 const emptyVolunteerForm: VolunteerFormState = {
   name: "",
@@ -97,11 +160,62 @@ function getStoredSession(): AppUser | null {
   }
 }
 
+function persistVolunteers(updatedVolunteers: Volunteer[]) {
+  if (typeof window === "undefined") return;
+
+  const existingUsers = getStoredUsers();
+  const nextUsers = updatedVolunteers.map((volunteer) => {
+    const matchingUser = existingUsers.find(
+      (user) => user.id === volunteer.id || user.fullName.toLowerCase() === volunteer.name.toLowerCase(),
+    );
+
+    return {
+      ...(matchingUser ?? {
+        id: volunteer.id,
+        email: volunteer.contact,
+        password: "",
+        role: "user-admin" as Role,
+        church: "Grace City Church",
+      }),
+      id: volunteer.id,
+      fullName: volunteer.name,
+      email: volunteer.contact,
+      team: volunteer.team,
+      ministryRole: matchingUser?.ministryRole ?? volunteer.team,
+      availability: volunteer.availability,
+      nextAssignment: volunteer.nextAssignment,
+      role: matchingUser?.role ?? "user-admin",
+      church: matchingUser?.church ?? "Grace City Church",
+      password: matchingUser?.password ?? "",
+    } satisfies AppUser;
+  });
+
+  window.localStorage.setItem(STORAGE_USERS, JSON.stringify(nextUsers));
+
+  const activeSession = getStoredSession();
+  if (activeSession && nextUsers.some((user) => user.id === activeSession.id || user.email === activeSession.email)) {
+    const syncedSession = nextUsers.find((user) => user.id === activeSession.id || user.email === activeSession.email);
+    if (syncedSession) {
+      window.localStorage.setItem(STORAGE_SESSION, JSON.stringify({
+        ...activeSession,
+        fullName: syncedSession.fullName,
+        email: syncedSession.email,
+        team: syncedSession.team,
+        availability: syncedSession.availability,
+        nextAssignment: syncedSession.nextAssignment,
+        role: syncedSession.role,
+        church: syncedSession.church,
+        password: syncedSession.password,
+      }));
+    }
+  }
+}
+
 export default function Home() {
   const [sessionUser, setSessionUser] = useState<AppUser | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team>("All");
-  const [volunteers, setVolunteers] = useState<Volunteer[]>(initialVolunteers);
-  const [schedule, setSchedule] = useState<ScheduleSlot[]>(initialSchedule);
+  const [volunteers, setVolunteers] = useState<Volunteer[]>(() => getStoredUsers().map(mapUserToVolunteer));
+  const [schedule, setSchedule] = useState<ScheduleSlot[]>(() => buildScheduleFromUsers(getStoredUsers()));
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingOriginalName, setEditingOriginalName] = useState<string>("");
@@ -117,6 +231,12 @@ export default function Home() {
 
     setSessionUser(activeUser);
   }, []);
+
+  useEffect(() => {
+    const registeredUsers = getStoredUsers();
+    setVolunteers(registeredUsers.map(mapUserToVolunteer));
+    setSchedule(buildScheduleFromUsers(registeredUsers));
+  }, [sessionUser]);
 
   const isSystemAdmin = sessionUser?.role === "system-admin";
 
@@ -180,8 +300,8 @@ export default function Home() {
     }
 
     if (editingId !== null) {
-      setVolunteers((current) =>
-        current.map((person) =>
+      setVolunteers((current) => {
+        const nextVolunteers = current.map((person) =>
           person.id === editingId
             ? {
                 ...person,
@@ -192,8 +312,11 @@ export default function Home() {
                 nextAssignment: formState.nextAssignment,
               }
             : person,
-        ),
-      );
+        );
+
+        persistVolunteers(nextVolunteers);
+        return nextVolunteers;
+      });
 
       if (editingOriginalName && editingOriginalName !== trimmedName) {
         setSchedule((current) =>
@@ -215,7 +338,11 @@ export default function Home() {
         nextAssignment: formState.nextAssignment,
       };
 
-      setVolunteers((current) => [...current, newVolunteer]);
+      setVolunteers((current) => {
+        const nextVolunteers = [...current, newVolunteer];
+        persistVolunteers(nextVolunteers);
+        return nextVolunteers;
+      });
     }
 
     closeForm();
@@ -223,7 +350,11 @@ export default function Home() {
 
   const handleDelete = (person: Volunteer) => {
     if (!isSystemAdmin) return;
-    setVolunteers((current) => current.filter((entry) => entry.id !== person.id));
+    setVolunteers((current) => {
+      const nextVolunteers = current.filter((entry) => entry.id !== person.id);
+      persistVolunteers(nextVolunteers);
+      return nextVolunteers;
+    });
     setSchedule((current) =>
       current.map((slot) => ({
         ...slot,

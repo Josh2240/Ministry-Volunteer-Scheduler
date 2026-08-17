@@ -7,7 +7,7 @@ const STORAGE_USERS = "church_users";
 const STORAGE_SESSION = "church_session";
 
 type Role = "system-admin" | "user-admin";
-type Team = "Ushers" | "Worship Team" | "Tech Crew" | "Sunday School";
+type Team = "Ushers" | "Worship Team" | "Tech Crew" | "Sunday School" | "Preacher";
 type Availability = "Available" | "Backup" | "On Call";
 
 type AppUser = {
@@ -55,6 +55,7 @@ const ministryRolesByTeam: Record<Team, string[]> = {
   "Worship Team": ["Drummer", "Bassist", "Singer", "Guitarist", "Keyboardist", "Sound Technician"],
   "Tech Crew": ["Camera Operator", "Live Stream", "Audio Technician", "Lighting Technician", "Projection"],
   "Sunday School": ["Teacher", "Helper", "Nursery", "Youth Mentor"],
+  Preacher: ["Senior Pastor", "Associate Pastor", "Youth Pastor", "Prayer Pastor", "Guest Speaker"],
 };
 
 export default function RegisterPage() {
@@ -207,6 +208,7 @@ export default function RegisterPage() {
               <option value="Worship Team">Worship Team</option>
               <option value="Tech Crew">Tech Crew</option>
               <option value="Sunday School">Sunday School</option>
+              <option value="Preacher">Preacher</option>
             </select>
           </label>
 
