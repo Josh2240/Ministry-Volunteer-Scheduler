@@ -35,4 +35,17 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
 # Ministry-Volunteer-Scheduler
-# Ministry-Volunteer-Scheduler
+
+## Demo accounts
+
+Use these accounts when testing the login flow locally:
+
+- System Admin
+  - Email: admin@church.org
+  - Password: admin123
+
+- User Admin
+  - Email: member@church.org
+  - Password: member123
+
+These accounts are for local development and testing only.

@@ -1,8 +1,18 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
+type Role = "system-admin" | "user-admin";
 type Team = "All" | "Ushers" | "Worship Team" | "Tech Crew" | "Sunday School";
+
+type AppUser = {
+  id: number;
+  fullName: string;
+  email: string;
+  password: string;
+  role: Role;
+  church: string;
+};
 
 type Volunteer = {
   id: number;
@@ -37,6 +47,9 @@ type StewardshipRecord = {
   note: string;
   status: "Cleared" | "Pending";
 };
+
+const STORAGE_USERS = "church_users";
+const STORAGE_SESSION = "church_session";
 
 const initialVolunteers: Volunteer[] = [
   { id: 1, name: "Alicia James", team: "Ushers", contact: "(555) 101-2041", availability: "Available", nextAssignment: "Main Entrance" },
@@ -73,7 +86,19 @@ const emptyVolunteerForm: VolunteerFormState = {
   nextAssignment: "",
 };
 
+function getStoredSession(): AppUser | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(STORAGE_SESSION);
+    return raw ? (JSON.parse(raw) as AppUser) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function Home() {
+  const [sessionUser, setSessionUser] = useState<AppUser | null>(null);
   const [selectedTeam, setSelectedTeam] = useState<Team>("All");
   const [volunteers, setVolunteers] = useState<Volunteer[]>(initialVolunteers);
   const [schedule, setSchedule] = useState<ScheduleSlot[]>(initialSchedule);
@@ -81,6 +106,19 @@ export default function Home() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingOriginalName, setEditingOriginalName] = useState<string>("");
   const [formState, setFormState] = useState<VolunteerFormState>(emptyVolunteerForm);
+
+  useEffect(() => {
+    const activeUser = getStoredSession();
+
+    if (!activeUser) {
+      window.location.href = "/login";
+      return;
+    }
+
+    setSessionUser(activeUser);
+  }, []);
+
+  const isSystemAdmin = sessionUser?.role === "system-admin";
 
   const filteredVolunteers = useMemo(() => {
     if (selectedTeam === "All") return volunteers;
@@ -103,6 +141,7 @@ export default function Home() {
   };
 
   const openAddForm = () => {
+    if (!isSystemAdmin) return;
     setEditingId(null);
     setEditingOriginalName("");
     setFormState(emptyVolunteerForm);
@@ -110,6 +149,7 @@ export default function Home() {
   };
 
   const openEditForm = (person: Volunteer) => {
+    if (!isSystemAdmin) return;
     setEditingId(person.id);
     setEditingOriginalName(person.name);
     setFormState({
@@ -131,6 +171,8 @@ export default function Home() {
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+
+    if (!isSystemAdmin) return;
 
     const trimmedName = formState.name.trim();
     if (!trimmedName) {
@@ -180,6 +222,7 @@ export default function Home() {
   };
 
   const handleDelete = (person: Volunteer) => {
+    if (!isSystemAdmin) return;
     setVolunteers((current) => current.filter((entry) => entry.id !== person.id));
     setSchedule((current) =>
       current.map((slot) => ({
@@ -188,6 +231,17 @@ export default function Home() {
       })),
     );
   };
+
+  const logout = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem(STORAGE_SESSION);
+      window.location.href = "/login";
+    }
+  };
+
+  if (!sessionUser) {
+    return null;
+  }
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100">
@@ -200,18 +254,31 @@ export default function Home() {
 
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
             <div className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
-              4 services this week
+              {sessionUser.role === "system-admin" ? "System Admin" : "User Admin"}
             </div>
+            {isSystemAdmin ? (
+              <button
+                onClick={openAddForm}
+                className="rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+              >
+                + Add volunteer
+              </button>
+            ) : (
+              <div className="rounded-full border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-200">
+                View access only
+              </div>
+            )}
             <button
-              onClick={openAddForm}
-              className="rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+              type="button"
+              onClick={logout}
+              className="rounded-full border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800"
             >
-              + Add volunteer
+              Logout
             </button>
           </div>
         </header>
 
-        {showForm && (
+        {showForm && isSystemAdmin && (
           <section className="mb-8 rounded-2xl border border-emerald-500/30 bg-slate-900 p-5 shadow-xl shadow-slate-950/40">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
@@ -364,22 +431,24 @@ export default function Home() {
                     <li>Next: {person.nextAssignment}</li>
                   </ul>
 
-                  <div className="mt-4 flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openEditForm(person)}
-                      className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(person)}
-                      className="flex-1 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-200 hover:bg-rose-500/20"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  {isSystemAdmin && (
+                    <div className="mt-4 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => openEditForm(person)}
+                        className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(person)}
+                        className="flex-1 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-200 hover:bg-rose-500/20"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </article>
               ))}
             </div>
