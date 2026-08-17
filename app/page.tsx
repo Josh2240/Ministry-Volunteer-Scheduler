@@ -586,95 +586,50 @@ export default function Home() {
           )}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-          <div className="rounded-2xl border border-white/10 bg-slate-900 p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Service roster</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">This week</h2>
-              </div>
-              <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-200">
-                {readyCount} ready
-              </span>
+        <section className="rounded-2xl border border-white/10 bg-slate-900 p-5">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Service roster</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white">This week</h2>
             </div>
-
-            <div className="space-y-4">
-              {schedule.map((slot) => (
-                <div key={slot.title} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
-                  <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">{slot.title}</h3>
-                      <p className="text-sm text-slate-400">{slot.time}</p>
-                    </div>
-
-                    <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                      slot.status === "Ready"
-                        ? "bg-emerald-500/15 text-emerald-200"
-                        : "bg-amber-500/15 text-amber-200"
-                    }`}>
-                      {slot.status}
-                    </span>
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.15em] text-slate-400">
-                    <span className="rounded-full bg-slate-800 px-2 py-1">{slot.team}</span>
-                    <span className="rounded-full bg-slate-800 px-2 py-1">{slot.openSpots} open spots</span>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {slot.assigned.map((name) => (
-                      <span key={name} className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200">
-                        {name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-200">
+              {readyCount} ready
+            </span>
           </div>
 
-          <aside className="space-y-6">
-            <div className="rounded-2xl border border-white/10 bg-slate-900 p-5">
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Coverage status</p>
-              <h3 className="mt-2 text-xl font-semibold text-white">Needs attention</h3>
-
-              <ul className="mt-5 space-y-3 text-sm text-slate-300">
-                <li className="rounded-xl bg-amber-500/10 p-3 text-amber-100">
-                  Worship team rehearsal still needs 1 vocalist.
-                </li>
-                <li className="rounded-xl bg-sky-500/10 p-3 text-sky-100">
-                  Tech crew needs a backup for livestream monitor.
-                </li>
-                <li className="rounded-xl bg-emerald-500/10 p-3 text-emerald-100">
-                  Sunday School has enough leads for this week.
-                </li>
-              </ul>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-slate-900 p-5">
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Financial stewardship</p>
-              <h3 className="mt-2 text-xl font-semibold text-white">Recent log</h3>
-
-              <div className="mt-4 space-y-3">
-                {stewardship.map((entry) => (
-                  <div key={`${entry.date}-${entry.category}`} className="rounded-xl border border-white/10 bg-slate-950/60 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="font-medium text-white">{entry.category}</p>
-                      <span className={`rounded-full px-2 py-1 text-[10px] font-medium ${
-                        entry.status === "Cleared"
-                          ? "bg-emerald-500/15 text-emerald-200"
-                          : "bg-amber-500/15 text-amber-200"
-                      }`}>
-                        {entry.status}
-                      </span>
-                    </div>
-                    <p className="mt-1 text-lg font-semibold text-emerald-300">{entry.amount}</p>
-                    <p className="text-xs text-slate-400">{entry.date} • {entry.note}</p>
+          <div className="space-y-4">
+            {schedule.map((slot) => (
+              <div key={slot.title} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+                <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{slot.title}</h3>
+                    <p className="text-sm text-slate-400">{slot.time}</p>
                   </div>
-                ))}
+
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    slot.status === "Ready"
+                      ? "bg-emerald-500/15 text-emerald-200"
+                      : "bg-amber-500/15 text-amber-200"
+                  }`}>
+                    {slot.status}
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.15em] text-slate-400">
+                  <span className="rounded-full bg-slate-800 px-2 py-1">{slot.team}</span>
+                  <span className="rounded-full bg-slate-800 px-2 py-1">{slot.openSpots} open spots</span>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {slot.assigned.map((name) => (
+                    <span key={name} className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200">
+                      {name}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
-          </aside>
+            ))}
+          </div>
         </section>
       </div>
     </main>
