@@ -4,16 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import Image from "next/image";
 
-type Role = "system-admin" | "user-admin";
-
-type AppUser = {
-  id: number;
-  fullName: string;
-  email: string;
-  role: Role;
-  church: string;
-};
-
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
