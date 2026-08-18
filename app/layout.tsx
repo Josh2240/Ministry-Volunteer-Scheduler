@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ministry & Volunteer Scheduler",
+  title: "Coastlight Church | Ministry & Volunteer Scheduler",
   description: "A ministry scheduling dashboard for volunteer assignments, service rosters, and stewardship tracking.",
 };
 
