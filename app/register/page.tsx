@@ -3,53 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import Image from "next/image";
-
-const STORAGE_USERS = "church_users";
-const STORAGE_SESSION = "church_session";
+import { useRouter } from "next/navigation";
 
 type Role = "system-admin" | "user-admin";
 type Team = "Ushers" | "Worship Team" | "Tech Crew" | "Sunday School" | "Preacher";
 type Availability = "Available" | "Backup" | "On Call";
-
-type AppUser = {
-  id: number;
-  fullName: string;
-  email: string;
-  password: string;
-  role: Role;
-  church: string;
-  team: Team;
-  ministryRole: string;
-  availability: Availability;
-  nextAssignment: string;
-};
-
-const defaultUsers: AppUser[] = [
-  {
-    id: 1,
-    fullName: "Pastor Daniel Moore",
-    email: "admin@church.org",
-    password: "admin123",
-    role: "system-admin",
-    church: "Grace City Church",
-    team: "Worship Team",
-    ministryRole: "Pastor",
-    availability: "Available",
-    nextAssignment: "Sunday service",
-  },
-  {
-    id: 2,
-    fullName: "Martha Wilson",
-    email: "member@church.org",
-    password: "member123",
-    role: "user-admin",
-    church: "Grace City Church",
-    team: "Ushers",
-    ministryRole: "Usher Lead",
-    availability: "Available",
-    nextAssignment: "Main entrance",
-  },
-];
 
 const ministryRolesByTeam: Record<Team, string[]> = {
   Ushers: ["Usher", "Usher Lead", "Greeter", "Prayer Team"],
@@ -60,6 +18,7 @@ const ministryRolesByTeam: Record<Team, string[]> = {
 };
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [church, setChurch] = useState("");
   const [email, setEmail] = useState("");
@@ -70,9 +29,12 @@ export default function RegisterPage() {
   const [availability, setAvailability] = useState<Availability>("Available");
   const [nextAssignment, setNextAssignment] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleRegister = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setMessage("");
+    setLoading(true);
 
     const trimmedName = fullName.trim();
     const trimmedEmail = email.trim();
@@ -80,53 +42,39 @@ export default function RegisterPage() {
 
     if (!trimmedName || !trimmedEmail || !password || !trimmedChurch || !nextAssignment.trim()) {
       setMessage("Please complete all fields, including your ministry assignment.");
+      setLoading(false);
       return;
     }
 
-    const existingUsers = (() => {
-      if (typeof window === "undefined") return defaultUsers;
-      const stored = window.localStorage.getItem(STORAGE_USERS);
-      if (!stored) {
-        window.localStorage.setItem(STORAGE_USERS, JSON.stringify(defaultUsers));
-        return defaultUsers;
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fullName: trimmedName,
+          email: trimmedEmail,
+          password,
+          role,
+          church: trimmedChurch,
+          team,
+          ministryRole,
+          availability,
+          nextAssignment: nextAssignment.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setMessage(data.error || "Registration failed.");
+        return;
       }
 
-      try {
-        return JSON.parse(stored) as AppUser[];
-      } catch {
-        window.localStorage.setItem(STORAGE_USERS, JSON.stringify(defaultUsers));
-        return defaultUsers;
-      }
-    })();
-
-    const emailExists = existingUsers.some(
-      (user) => user.email.toLowerCase() === trimmedEmail.toLowerCase(),
-    );
-
-    if (emailExists) {
-      setMessage("That email is already registered.");
-      return;
-    }
-
-    const newUser: AppUser = {
-      id: Date.now(),
-      fullName: trimmedName,
-      email: trimmedEmail,
-      password,
-      role,
-      church: trimmedChurch,
-      team,
-      ministryRole,
-      availability,
-      nextAssignment: nextAssignment.trim(),
-    };
-
-    const updatedUsers = [...existingUsers, newUser];
-
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_USERS, JSON.stringify(updatedUsers));
-      window.localStorage.setItem(STORAGE_SESSION, JSON.stringify(newUser));
-      window.location.href = "/";
+      router.push("/");
+    } catch {
+      setMessage("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -159,6 +107,7 @@ export default function RegisterPage() {
               onChange={(event) => setFullName(event.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-black outline-none focus:border-blue-500"
               placeholder="John Smith"
+              required
             />
           </label>
 
@@ -169,6 +118,7 @@ export default function RegisterPage() {
               onChange={(event) => setChurch(event.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-black outline-none focus:border-blue-500"
               placeholder="Grace City Church"
+              required
             />
           </label>
 
@@ -180,6 +130,7 @@ export default function RegisterPage() {
               onChange={(event) => setEmail(event.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-black outline-none focus:border-blue-500"
               placeholder="name@church.org"
+              required
             />
           </label>
 
@@ -191,6 +142,7 @@ export default function RegisterPage() {
               onChange={(event) => setPassword(event.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-black outline-none focus:border-blue-500"
               placeholder="Create a password"
+              required
             />
           </label>
 
@@ -260,6 +212,7 @@ export default function RegisterPage() {
               onChange={(event) => setNextAssignment(event.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-black outline-none focus:border-blue-500"
               placeholder="Main Entrance"
+              required
             />
           </label>
 
@@ -267,9 +220,10 @@ export default function RegisterPage() {
 
           <button
             type="submit"
-            className="w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+            disabled={loading}
+            className="w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
           >
-            Register
+            {loading ? "Creating account..." : "Register"}
           </button>
         </form>
 

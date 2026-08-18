@@ -3,78 +3,39 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-
-const STORAGE_USERS = "church_users";
-const STORAGE_SESSION = "church_session";
-
-type Role = "system-admin" | "user-admin";
-
-type AppUser = {
-  id: number;
-  fullName: string;
-  email: string;
-  password: string;
-  role: Role;
-  church: string;
-};
-
-const seedUsers: AppUser[] = [
-  {
-    id: 1,
-    fullName: "Pastor Daniel Moore",
-    email: "admin@church.org",
-    password: "admin123",
-    role: "system-admin",
-    church: "Grace City Church",
-  },
-  {
-    id: 2,
-    fullName: "Martha Wilson",
-    email: "member@church.org",
-    password: "member123",
-    role: "user-admin",
-    church: "Grace City Church",
-  },
-];
-
-function getUsers() {
-  if (typeof window === "undefined") return seedUsers;
-
-  const stored = window.localStorage.getItem(STORAGE_USERS);
-  if (!stored) {
-    window.localStorage.setItem(STORAGE_USERS, JSON.stringify(seedUsers));
-    return seedUsers;
-  }
-
-  try {
-    return JSON.parse(stored) as AppUser[];
-  } catch {
-    window.localStorage.setItem(STORAGE_USERS, JSON.stringify(seedUsers));
-    return seedUsers;
-  }
-}
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError("");
+    setLoading(true);
 
-    const users = getUsers();
-    const foundUser = users.find(
-      (user) => user.email.toLowerCase() === email.toLowerCase().trim() && user.password === password,
-    );
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!foundUser) {
-      setError("Invalid email or password.");
-      return;
-    }
+      const data = await res.json();
 
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_SESSION, JSON.stringify(foundUser));
-      window.location.href = "/";
+      if (!res.ok) {
+        setError(data.error || "Invalid email or password.");
+        return;
+      }
+
+      router.push("/");
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,6 +69,7 @@ export default function LoginPage() {
               onChange={(event) => setEmail(event.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-black outline-none placeholder:text-gray-400 focus:border-blue-500"
               placeholder="name@church.org"
+              required
             />
           </label>
 
@@ -119,6 +81,7 @@ export default function LoginPage() {
               onChange={(event) => setPassword(event.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-black outline-none placeholder:text-gray-400 focus:border-blue-500"
               placeholder="••••••••"
+              required
             />
           </label>
 
@@ -126,9 +89,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+            disabled={loading}
+            className="w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
           >
-            Login
+            {loading ? "Signing in..." : "Login"}
           </button>
         </form>
 

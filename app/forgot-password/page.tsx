@@ -4,83 +4,60 @@ import Link from "next/link";
 import { useState } from "react";
 import Image from "next/image";
 
-const STORAGE_USERS = "church_users";
-
 type Role = "system-admin" | "user-admin";
 
 type AppUser = {
   id: number;
   fullName: string;
   email: string;
-  password: string;
   role: Role;
   church: string;
 };
-
-const defaultUsers: AppUser[] = [
-  {
-    id: 1,
-    fullName: "Pastor Daniel Moore",
-    email: "admin@church.org",
-    password: "admin123",
-    role: "system-admin",
-    church: "Grace City Church",
-  },
-  {
-    id: 2,
-    fullName: "Martha Wilson",
-    email: "member@church.org",
-    password: "member123",
-    role: "user-admin",
-    church: "Grace City Church",
-  },
-];
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleReset = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleReset = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setMessage("");
+    setError("");
+    setLoading(true);
 
     const trimmedEmail = email.trim().toLowerCase();
     if (!trimmedEmail) {
       setError("Please enter your email address.");
-      setMessage("");
+      setLoading(false);
       return;
     }
 
-    const storedUsers = (() => {
-      if (typeof window === "undefined") return defaultUsers;
-      const raw = window.localStorage.getItem(STORAGE_USERS);
-      if (!raw) {
-        window.localStorage.setItem(STORAGE_USERS, JSON.stringify(defaultUsers));
-        return defaultUsers;
+    try {
+      const res = await fetch("/api/users");
+      if (!res.ok) {
+        setError("Something went wrong. Please try again.");
+        setLoading(false);
+        return;
       }
 
-      try {
-        return JSON.parse(raw) as AppUser[];
-      } catch {
-        window.localStorage.setItem(STORAGE_USERS, JSON.stringify(defaultUsers));
-        return defaultUsers;
+      const users: AppUser[] = await res.json();
+      const match = users.find((user) => user.email.toLowerCase() === trimmedEmail);
+
+      if (!match) {
+        setError("No account was found for that email.");
+        setLoading(false);
+        return;
       }
-    })();
 
-    const match = storedUsers.find((user) => user.email.toLowerCase() === trimmedEmail);
+      setMessage(`Password reset link sent to ${match.email}. Please check your inbox.`);
 
-    if (!match) {
-      setError("No account was found for that email.");
-      setMessage("");
-      return;
-    }
-
-    setError("");
-    setMessage(`Password reset link sent to ${match.email}. Please check your inbox.`);
-
-    if (typeof window !== "undefined") {
-      const resetMessage = `Hello ${match.fullName},\n\nA password reset was requested for your church account.\n\nYour email: ${match.email}\nYour current password: ${match.password}\n\nPlease use this information to sign in and change your password from the account settings.\n\nRegards,\nChurch Access Team`;
-      window.alert(resetMessage);
+      const resetMessage = `Hello ${match.fullName},\n\nA password reset was requested for your church account.\n\nYour email: ${match.email}\nYour current password: [redacted]\n\nPlease use this information to sign in and change your password from the account settings.\n\nRegards,\nChurch Access Team`;
+      alert(resetMessage);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -114,6 +91,7 @@ export default function ForgotPasswordPage() {
               onChange={(event) => setEmail(event.target.value)}
               className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2.5 text-black outline-none placeholder:text-gray-400 focus:border-blue-500"
               placeholder="name@church.org"
+              required
             />
           </label>
 
@@ -122,9 +100,10 @@ export default function ForgotPasswordPage() {
 
           <button
             type="submit"
-            className="w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+            disabled={loading}
+            className="w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50"
           >
-            Send reset link
+            {loading ? "Sending..." : "Send reset link"}
           </button>
         </form>
 

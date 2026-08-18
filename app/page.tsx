@@ -1,87 +1,62 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Role = "system-admin" | "user-admin";
 type Team = "All" | "Ushers" | "Worship Team" | "Tech Crew" | "Sunday School" | "Preacher";
-type Availability = "Available" | "Backup" | "On Call";
 
 type AppUser = {
   id: number;
   fullName: string;
   email: string;
-  password: string;
   role: Role;
   church: string;
-  team?: Exclude<Team, "All">;
+  team?: string;
   ministryRole?: string;
-  availability?: Availability;
+  availability?: string;
   nextAssignment?: string;
 };
 
 type Volunteer = {
   id: number;
   name: string;
-  team: Exclude<Team, "All">;
+  team: string;
   contact: string;
-  availability: Availability;
+  availability: string;
   nextAssignment: string;
 };
 
 type VolunteerFormState = {
   name: string;
-  team: Exclude<Team, "All">;
+  team: string;
   contact: string;
-  availability: Volunteer["availability"];
+  availability: string;
   nextAssignment: string;
 };
 
 type ScheduleSlot = {
   title: string;
   time: string;
-  team: Exclude<Team, "All">;
+  team: string;
   assigned: string[];
   openSpots: number;
   status: "Ready" | "Needs Coverage";
 };
 
-type StewardshipRecord = {
-  date: string;
-  category: string;
-  amount: string;
-  note: string;
-  status: "Cleared" | "Pending";
+const teamOptions: Team[] = ["All", "Ushers", "Worship Team", "Tech Crew", "Sunday School", "Preacher"];
+
+const emptyVolunteerForm: VolunteerFormState = {
+  name: "",
+  team: "Ushers",
+  contact: "",
+  availability: "Available",
+  nextAssignment: "",
 };
 
-const STORAGE_USERS = "church_users";
-const STORAGE_SESSION = "church_session";
-
-const getStoredUsers = (): AppUser[] => {
-  if (typeof window === "undefined") return [];
-
-  const stored = window.localStorage.getItem(STORAGE_USERS);
-  if (!stored) return [];
-
-  try {
-    const parsed = JSON.parse(stored) as AppUser[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
-
-const mapUserToVolunteer = (user: AppUser): Volunteer => ({
-  id: user.id,
-  name: user.fullName,
-  team: user.team ?? "Ushers",
-  contact: user.email,
-  availability: user.availability ?? "Available",
-  nextAssignment: user.nextAssignment ?? "Open assignment",
-});
-
-const buildScheduleFromUsers = (users: AppUser[]): ScheduleSlot[] => {
-  const getAssigned = (team: Exclude<Team, "All">) =>
-    users.filter((user) => user.team === team).map((user) => user.fullName);
+function buildScheduleFromVolunteers(volunteers: Volunteer[]): ScheduleSlot[] {
+  const getAssigned = (team: string) =>
+    volunteers.filter((v) => v.team === team).map((v) => v.name);
 
   const schedule: ScheduleSlot[] = [
     {
@@ -130,112 +105,57 @@ const buildScheduleFromUsers = (users: AppUser[]): ScheduleSlot[] => {
     ...slot,
     openSpots: Math.max(0, 3 - slot.assigned.length),
   }));
-};
-
-const stewardship: StewardshipRecord[] = [
-  { date: "2026-08-09", category: "Tithes & Offerings", amount: "$4,280.00", note: "Sunday service donation", status: "Cleared" },
-  { date: "2026-08-09", category: "Mission Fund", amount: "$640.00", note: "Community outreach", status: "Cleared" },
-  { date: "2026-08-10", category: "Youth Camp", amount: "$1,150.00", note: "Pending deposit", status: "Pending" },
-  { date: "2026-08-12", category: "Facility Maintenance", amount: "$780.00", note: "Sound booth repairs", status: "Pending" },
-];
-
-const teamOptions: Team[] = ["All", "Ushers", "Worship Team", "Tech Crew", "Sunday School", "Preacher"];
-
-const emptyVolunteerForm: VolunteerFormState = {
-  name: "",
-  team: "Ushers",
-  contact: "",
-  availability: "Available",
-  nextAssignment: "",
-};
-
-function getStoredSession(): AppUser | null {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_SESSION);
-    return raw ? (JSON.parse(raw) as AppUser) : null;
-  } catch {
-    return null;
-  }
-}
-
-function persistVolunteers(updatedVolunteers: Volunteer[]) {
-  if (typeof window === "undefined") return;
-
-  const existingUsers = getStoredUsers();
-  const nextUsers = updatedVolunteers.map((volunteer) => {
-    const matchingUser = existingUsers.find(
-      (user) => user.id === volunteer.id || user.fullName.toLowerCase() === volunteer.name.toLowerCase(),
-    );
-
-    return {
-      ...(matchingUser ?? {
-        id: volunteer.id,
-        email: volunteer.contact,
-        password: "",
-        role: "user-admin" as Role,
-        church: "Grace City Church",
-      }),
-      id: volunteer.id,
-      fullName: volunteer.name,
-      email: volunteer.contact,
-      team: volunteer.team,
-      ministryRole: matchingUser?.ministryRole ?? volunteer.team,
-      availability: volunteer.availability,
-      nextAssignment: volunteer.nextAssignment,
-      role: matchingUser?.role ?? "user-admin",
-      church: matchingUser?.church ?? "Grace City Church",
-      password: matchingUser?.password ?? "",
-    } satisfies AppUser;
-  });
-
-  window.localStorage.setItem(STORAGE_USERS, JSON.stringify(nextUsers));
-
-  const activeSession = getStoredSession();
-  if (activeSession && nextUsers.some((user) => user.id === activeSession.id || user.email === activeSession.email)) {
-    const syncedSession = nextUsers.find((user) => user.id === activeSession.id || user.email === activeSession.email);
-    if (syncedSession) {
-      window.localStorage.setItem(STORAGE_SESSION, JSON.stringify({
-        ...activeSession,
-        fullName: syncedSession.fullName,
-        email: syncedSession.email,
-        team: syncedSession.team,
-        availability: syncedSession.availability,
-        nextAssignment: syncedSession.nextAssignment,
-        role: syncedSession.role,
-        church: syncedSession.church,
-        password: syncedSession.password,
-      }));
-    }
-  }
 }
 
 export default function Home() {
+  const router = useRouter();
   const [sessionUser, setSessionUser] = useState<AppUser | null>(null);
+  const [loading, setLoading] = useState(true);
   const [selectedTeam, setSelectedTeam] = useState<Team>("All");
-  const [volunteers, setVolunteers] = useState<Volunteer[]>(() => getStoredUsers().map(mapUserToVolunteer));
-  const [schedule, setSchedule] = useState<ScheduleSlot[]>(() => buildScheduleFromUsers(getStoredUsers()));
+  const [volunteers, setVolunteers] = useState<Volunteer[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleSlot[]>([]);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editingOriginalName, setEditingOriginalName] = useState<string>("");
   const [formState, setFormState] = useState<VolunteerFormState>(emptyVolunteerForm);
 
   useEffect(() => {
-    const activeUser = getStoredSession();
+    const checkSession = async () => {
+      try {
+        const res = await fetch("/api/auth/session", { cache: "no-store" });
+        const data = await res.json();
+        if (data.user) {
+          setSessionUser(data.user);
+        } else {
+          router.push("/login");
+        }
+      } catch {
+        router.push("/login");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    if (!activeUser) {
-      window.location.href = "/login";
-      return;
-    }
-
-    setSessionUser(activeUser);
-  }, []);
+    checkSession();
+  }, [router]);
 
   useEffect(() => {
-    const registeredUsers = getStoredUsers();
-    setVolunteers(registeredUsers.map(mapUserToVolunteer));
-    setSchedule(buildScheduleFromUsers(registeredUsers));
+    if (!sessionUser) return;
+
+    const loadVolunteers = async () => {
+      try {
+        const res = await fetch("/api/volunteers", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          setVolunteers(data);
+          setSchedule(buildScheduleFromVolunteers(data));
+        }
+      } catch (error) {
+        console.error("Failed to load volunteers:", error);
+      }
+    };
+
+    loadVolunteers();
   }, [sessionUser]);
 
   const isSystemAdmin = sessionUser?.role === "system-admin";
@@ -289,7 +209,7 @@ export default function Home() {
     setFormState(emptyVolunteerForm);
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!isSystemAdmin) return;
@@ -299,79 +219,101 @@ export default function Home() {
       return;
     }
 
-    if (editingId !== null) {
-      setVolunteers((current) => {
-        const nextVolunteers = current.map((person) =>
-          person.id === editingId
-            ? {
-                ...person,
-                name: trimmedName,
-                team: formState.team,
-                contact: formState.contact,
-                availability: formState.availability,
-                nextAssignment: formState.nextAssignment,
-              }
-            : person,
-        );
+    try {
+      if (editingId !== null) {
+        const res = await fetch("/api/volunteers", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: editingId,
+            name: trimmedName,
+            team: formState.team,
+            contact: formState.contact,
+            availability: formState.availability,
+            nextAssignment: formState.nextAssignment,
+          }),
+        });
 
-        persistVolunteers(nextVolunteers);
-        return nextVolunteers;
+        if (res.ok) {
+          const updated = await res.json();
+          setVolunteers((current) =>
+            current.map((person) =>
+              person.id === editingId ? updated : person,
+            ),
+          );
+
+          if (editingOriginalName && editingOriginalName !== trimmedName) {
+            setSchedule((current) =>
+              current.map((slot) => ({
+                ...slot,
+                assigned: slot.assigned.map((assignedName) =>
+                  assignedName === editingOriginalName ? trimmedName : assignedName,
+                ),
+              })),
+            );
+          }
+        }
+      } else {
+        const res = await fetch("/api/volunteers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: trimmedName,
+            team: formState.team,
+            contact: formState.contact,
+            availability: formState.availability,
+            nextAssignment: formState.nextAssignment,
+          }),
+        });
+
+        if (res.ok) {
+          const created = await res.json();
+          setVolunteers((current) => [...current, created]);
+        }
+      }
+
+      closeForm();
+    } catch (error) {
+      console.error("Submit error:", error);
+    }
+  };
+
+  const handleDelete = async (person: Volunteer) => {
+    if (!isSystemAdmin) return;
+
+    try {
+      const res = await fetch(`/api/volunteers?id=${person.id}`, {
+        method: "DELETE",
       });
 
-      if (editingOriginalName && editingOriginalName !== trimmedName) {
+      if (res.ok) {
+        setVolunteers((current) => current.filter((entry) => entry.id !== person.id));
         setSchedule((current) =>
           current.map((slot) => ({
             ...slot,
-            assigned: slot.assigned.map((assignedName) =>
-              assignedName === editingOriginalName ? trimmedName : assignedName,
-            ),
+            assigned: slot.assigned.filter((assignedName) => assignedName !== person.name),
           })),
         );
       }
-    } else {
-      const newVolunteer: Volunteer = {
-        id: Date.now(),
-        name: trimmedName,
-        team: formState.team,
-        contact: formState.contact,
-        availability: formState.availability,
-        nextAssignment: formState.nextAssignment,
-      };
-
-      setVolunteers((current) => {
-        const nextVolunteers = [...current, newVolunteer];
-        persistVolunteers(nextVolunteers);
-        return nextVolunteers;
-      });
+    } catch (error) {
+      console.error("Delete error:", error);
     }
-
-    closeForm();
   };
 
-  const handleDelete = (person: Volunteer) => {
-    if (!isSystemAdmin) return;
-    setVolunteers((current) => {
-      const nextVolunteers = current.filter((entry) => entry.id !== person.id);
-      persistVolunteers(nextVolunteers);
-      return nextVolunteers;
-    });
-    setSchedule((current) =>
-      current.map((slot) => ({
-        ...slot,
-        assigned: slot.assigned.filter((assignedName) => assignedName !== person.name),
-      })),
+  const logout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      router.push("/login");
+    }
+  };
+
+  if (loading || !sessionUser) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-white">
+        <p className="text-sm text-gray-600">Loading...</p>
+      </main>
     );
-  };
-
-  const logout = () => {
-    if (typeof window !== "undefined") {
-      window.localStorage.removeItem(STORAGE_SESSION);
-      window.location.href = "/login";
-    }
-  };
-
-  if (!sessionUser) {
-    return null;
   }
 
   return (
@@ -442,7 +384,7 @@ export default function Home() {
                 Team
                 <select
                   value={formState.team}
-                  onChange={(event) => handleChange("team", event.target.value as Exclude<Team, "All">)}
+                  onChange={(event) => handleChange("team", event.target.value)}
                   className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black outline-none focus:border-blue-500"
                 >
                   {teamOptions.filter((team) => team !== "All").map((team) => (
@@ -467,7 +409,7 @@ export default function Home() {
                 Availability
                 <select
                   value={formState.availability}
-                  onChange={(event) => handleChange("availability", event.target.value as Volunteer["availability"])}
+                  onChange={(event) => handleChange("availability", event.target.value)}
                   className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black outline-none focus:border-blue-500"
                 >
                   <option value="Available">Available</option>
