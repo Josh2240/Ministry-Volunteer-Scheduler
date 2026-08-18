@@ -34,25 +34,23 @@ export default function ForgotPasswordPage() {
     }
 
     try {
-      const res = await fetch("/api/users");
+      const res = await fetch("/api/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+
+      const data = await res.json();
+
       if (!res.ok) {
-        setError("Something went wrong. Please try again.");
+        setError(data.error || "Something went wrong. Please try again.");
         setLoading(false);
         return;
       }
 
-      const users: AppUser[] = await res.json();
-      const match = users.find((user) => user.email.toLowerCase() === trimmedEmail);
+      setMessage(`Password reset link sent to ${data.email}. Please check your inbox.`);
 
-      if (!match) {
-        setError("No account was found for that email.");
-        setLoading(false);
-        return;
-      }
-
-      setMessage(`Password reset link sent to ${match.email}. Please check your inbox.`);
-
-      const resetMessage = `Hello ${match.fullName},\n\nA password reset was requested for your church account.\n\nYour email: ${match.email}\nYour current password: [redacted]\n\nPlease use this information to sign in and change your password from the account settings.\n\nRegards,\nChurch Access Team`;
+      const resetMessage = `Hello ${data.fullName},\n\nA password reset was requested for your church account.\n\nYour email: ${data.email}\nYour current password: [redacted]\n\nPlease use this information to sign in and change your password from the account settings.\n\nRegards,\nChurch Access Team`;
       alert(resetMessage);
     } catch {
       setError("Something went wrong. Please try again.");

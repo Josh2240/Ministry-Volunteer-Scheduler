@@ -51,3 +51,37 @@ export async function GET() {
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function POST(request: Request) {
+  try {
+    const { email } = await request.json();
+
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        role: true,
+        church: true,
+        team: true,
+        ministryRole: true,
+        availability: true,
+        nextAssignment: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "No account was found for that email." }, { status: 404 });
+    }
+
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error("Lookup user error:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
