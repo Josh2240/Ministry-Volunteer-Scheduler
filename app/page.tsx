@@ -375,34 +375,34 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100">
+    <main className="min-h-screen bg-white text-slate-900">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="mb-8 flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 shadow-2xl shadow-slate-950/50 backdrop-blur md:flex-row md:items-center md:justify-between">
+        <header className="mb-8 flex flex-col gap-4 rounded-2xl border border-blue-200 bg-blue-50 p-6 shadow-lg md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-emerald-300">Ministry operations</p>
-            <h1 className="mt-2 text-3xl font-semibold text-white">Ministry & Volunteer Scheduler</h1>
+            <p className="text-sm uppercase tracking-[0.2em] text-blue-600">Ministry operations</p>
+            <h1 className="mt-2 text-3xl font-semibold text-black">Ministry & Volunteer Scheduler</h1>
           </div>
 
           <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-            <div className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-200">
+            <div className="rounded-full border border-blue-300 bg-blue-100 px-4 py-2 text-sm text-blue-700">
               {sessionUser.role === "system-admin" ? "System Admin" : "User Admin"}
             </div>
             {isSystemAdmin ? (
               <button
                 onClick={openAddForm}
-                className="rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+                className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
               >
                 + Add volunteer
               </button>
             ) : (
-              <div className="rounded-full border border-slate-700 bg-slate-800 px-4 py-2 text-sm text-slate-200">
+              <div className="rounded-full border border-gray-300 bg-gray-100 px-4 py-2 text-sm text-gray-600">
                 View access only
               </div>
             )}
             <button
               type="button"
               onClick={logout}
-              className="rounded-full border border-slate-700 bg-slate-900 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-800"
+              className="rounded-full border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
             >
               Logout
             </button>
@@ -410,40 +410,40 @@ export default function Home() {
         </header>
 
         {showForm && isSystemAdmin && (
-          <section className="mb-8 rounded-2xl border border-emerald-500/30 bg-slate-900 p-5 shadow-xl shadow-slate-950/40">
+          <section className="mb-8 rounded-2xl border border-blue-200 bg-white p-5 shadow-lg">
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Volunteer record</p>
-                <h2 className="mt-2 text-2xl font-semibold text-white">
+                <p className="text-sm uppercase tracking-[0.2em] text-blue-600">Volunteer record</p>
+                <h2 className="mt-2 text-2xl font-semibold text-black">
                   {editingId !== null ? "Edit volunteer" : "Add volunteer"}
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={closeForm}
-                className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-700"
+                className="rounded-full border border-gray-300 bg-gray-100 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-200"
               >
                 Cancel
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="grid gap-4 md:grid-cols-2">
-              <label className="block text-sm text-slate-300">
+              <label className="block text-sm text-gray-700">
                 Name
                 <input
                   value={formState.name}
                   onChange={(event) => handleChange("name", event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none ring-0 placeholder:text-slate-500 focus:border-emerald-400"
+                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black outline-none ring-0 placeholder:text-gray-400 focus:border-blue-500"
                   placeholder="Full name"
                 />
               </label>
 
-              <label className="block text-sm text-slate-300">
+              <label className="block text-sm text-gray-700">
                 Team
                 <select
                   value={formState.team}
                   onChange={(event) => handleChange("team", event.target.value as Exclude<Team, "All">)}
-                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-emerald-400"
+                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black outline-none focus:border-blue-500"
                 >
                   {teamOptions.filter((team) => team !== "All").map((team) => (
                     <option key={team} value={team}>
@@ -453,22 +453,22 @@ export default function Home() {
                 </select>
               </label>
 
-              <label className="block text-sm text-slate-300">
+              <label className="block text-sm text-gray-700">
                 Contact
                 <input
                   value={formState.contact}
                   onChange={(event) => handleChange("contact", event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
+                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black outline-none placeholder:text-gray-400 focus:border-blue-500"
                   placeholder="(555) 000-0000"
                 />
               </label>
 
-              <label className="block text-sm text-slate-300">
+              <label className="block text-sm text-gray-700">
                 Availability
                 <select
                   value={formState.availability}
                   onChange={(event) => handleChange("availability", event.target.value as Volunteer["availability"])}
-                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-emerald-400"
+                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black outline-none focus:border-blue-500"
                 >
                   <option value="Available">Available</option>
                   <option value="Backup">Backup</option>
@@ -476,12 +476,12 @@ export default function Home() {
                 </select>
               </label>
 
-              <label className="block text-sm text-slate-300 md:col-span-2">
+              <label className="block text-sm text-gray-700 md:col-span-2">
                 Next assignment
                 <input
                   value={formState.nextAssignment}
                   onChange={(event) => handleChange("nextAssignment", event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none placeholder:text-slate-500 focus:border-emerald-400"
+                  className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-black outline-none placeholder:text-gray-400 focus:border-blue-500"
                   placeholder="Welcome desk, vocals, livestream, etc."
                 />
               </label>
@@ -489,7 +489,7 @@ export default function Home() {
               <div className="md:col-span-2 flex justify-end">
                 <button
                   type="submit"
-                  className="rounded-full bg-emerald-400 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-emerald-300"
+                  className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
                 >
                   {editingId !== null ? "Save changes" : "Add volunteer"}
                 </button>
@@ -500,9 +500,9 @@ export default function Home() {
 
         <section className="mb-8 grid gap-4 md:grid-cols-4">
           {stats.map((item) => (
-            <div key={item.label} className="rounded-2xl border border-white/10 bg-slate-900 p-5 shadow-lg shadow-slate-950/40">
-              <p className="text-sm text-slate-400">{item.label}</p>
-              <p className="mt-3 text-3xl font-bold text-white">{item.value}</p>
+            <div key={item.label} className="rounded-2xl border border-gray-200 bg-white p-5 shadow-md">
+              <p className="text-sm text-gray-600">{item.label}</p>
+              <p className="mt-3 text-3xl font-bold text-black">{item.value}</p>
               <div className={`mt-4 h-1.5 rounded-full ${item.track}`}>
                 <div className={`h-1.5 w-3/4 rounded-full ${item.fill}`} />
               </div>
@@ -510,11 +510,11 @@ export default function Home() {
           ))}
         </section>
 
-        <section className="mb-8 rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <section className="mb-8 rounded-2xl border border-gray-200 bg-white p-5 shadow-md">
           <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Volunteer directory</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">Team coverage filter</h2>
+              <p className="text-sm uppercase tracking-[0.2em] text-blue-600">Volunteer directory</p>
+              <h2 className="mt-2 text-2xl font-semibold text-black">Team coverage filter</h2>
             </div>
             <div className="flex flex-wrap gap-2">
               {teamOptions.map((team) => (
@@ -523,8 +523,8 @@ export default function Home() {
                   onClick={() => setSelectedTeam(team)}
                   className={`rounded-full px-3 py-1.5 text-sm font-medium transition ${
                     selectedTeam === team
-                      ? "bg-emerald-400 text-slate-950"
-                      : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
                   {team}
@@ -534,30 +534,30 @@ export default function Home() {
           </div>
 
           {filteredVolunteers.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-slate-700 bg-slate-950/40 p-6 text-sm text-slate-400">
+            <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 p-6 text-sm text-gray-600">
               No volunteers match this team selection yet.
             </div>
           ) : (
             <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
               {filteredVolunteers.map((person) => (
-                <article key={person.id} className="rounded-2xl border border-white/10 bg-slate-950/60 p-4">
+                <article key={person.id} className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div>
-                      <h3 className="text-lg font-semibold text-white">{person.name}</h3>
-                      <p className="text-sm text-emerald-300">{person.team}</p>
+                      <h3 className="text-lg font-semibold text-black">{person.name}</h3>
+                      <p className="text-sm text-blue-600">{person.team}</p>
                     </div>
                     <span className={`rounded-full px-2 py-1 text-xs font-medium ${
                       person.availability === "Available"
-                        ? "bg-emerald-500/15 text-emerald-200"
+                        ? "bg-blue-100 text-blue-700"
                         : person.availability === "Backup"
-                          ? "bg-amber-500/15 text-amber-200"
-                          : "bg-sky-500/15 text-sky-200"
+                          ? "bg-yellow-100 text-yellow-700"
+                          : "bg-cyan-100 text-cyan-700"
                     }`}>
                       {person.availability}
                     </span>
                   </div>
 
-                  <ul className="space-y-2 text-sm text-slate-300">
+                  <ul className="space-y-2 text-sm text-gray-700">
                     <li>Contact: {person.contact}</li>
                     <li>Next: {person.nextAssignment}</li>
                   </ul>
@@ -567,14 +567,14 @@ export default function Home() {
                       <button
                         type="button"
                         onClick={() => openEditForm(person)}
-                        className="flex-1 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700"
+                        className="flex-1 rounded-lg border border-blue-300 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-700 hover:bg-blue-100"
                       >
                         Edit
                       </button>
                       <button
                         type="button"
                         onClick={() => handleDelete(person)}
-                        className="flex-1 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-200 hover:bg-rose-500/20"
+                        className="flex-1 rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-700 hover:bg-red-100"
                       >
                         Delete
                       </button>
@@ -586,43 +586,43 @@ export default function Home() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-slate-900 p-5">
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-md">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <p className="text-sm uppercase tracking-[0.2em] text-slate-400">Service roster</p>
-              <h2 className="mt-2 text-2xl font-semibold text-white">This week</h2>
+              <p className="text-sm uppercase tracking-[0.2em] text-blue-600">Service roster</p>
+              <h2 className="mt-2 text-2xl font-semibold text-black">This week</h2>
             </div>
-            <span className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-200">
+            <span className="rounded-full border border-blue-300 bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
               {readyCount} ready
             </span>
           </div>
 
           <div className="space-y-4">
             {schedule.map((slot) => (
-              <div key={slot.title} className="rounded-2xl border border-white/10 bg-slate-950/70 p-4">
+              <div key={slot.title} className="rounded-2xl border border-gray-200 bg-gray-50 p-4 shadow-sm">
                 <div className="mb-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <h3 className="text-lg font-semibold text-white">{slot.title}</h3>
-                    <p className="text-sm text-slate-400">{slot.time}</p>
+                    <h3 className="text-lg font-semibold text-black">{slot.title}</h3>
+                    <p className="text-sm text-gray-600">{slot.time}</p>
                   </div>
 
                   <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
                     slot.status === "Ready"
-                      ? "bg-emerald-500/15 text-emerald-200"
-                      : "bg-amber-500/15 text-amber-200"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-yellow-100 text-yellow-700"
                   }`}>
                     {slot.status}
                   </span>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.15em] text-slate-400">
-                  <span className="rounded-full bg-slate-800 px-2 py-1">{slot.team}</span>
-                  <span className="rounded-full bg-slate-800 px-2 py-1">{slot.openSpots} open spots</span>
+                <div className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.15em] text-gray-600">
+                  <span className="rounded-full bg-white border border-gray-300 px-2 py-1">{slot.team}</span>
+                  <span className="rounded-full bg-white border border-gray-300 px-2 py-1">{slot.openSpots} open spots</span>
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {slot.assigned.map((name) => (
-                    <span key={name} className="rounded-full border border-slate-700 bg-slate-800 px-3 py-1.5 text-sm text-slate-200">
+                    <span key={name} className="rounded-full border border-blue-300 bg-blue-50 px-3 py-1.5 text-sm text-blue-700">
                       {name}
                     </span>
                   ))}
