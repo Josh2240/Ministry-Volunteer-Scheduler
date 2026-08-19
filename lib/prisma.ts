@@ -1,9 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 
-const prismaClient = globalThis as unknown as { prisma: PrismaClient };
+const connectionString = process.env.DATABASE_URL;
 
-export const prisma = prismaClient.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  prismaClient.prisma = prisma;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is not set");
 }
+
+export const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: connectionString,
+    },
+  },
+});
